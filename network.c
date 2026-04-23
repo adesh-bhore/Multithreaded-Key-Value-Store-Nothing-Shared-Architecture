@@ -8,7 +8,6 @@
     /* Windows (Winsock) */
     #include <winsock2.h>
     #include <ws2tcpip.h>
-    #pragma comment(lib, "ws2_32.lib")  // Link with Winsock library
     
     // Winsock initialization flag
     static int winsock_initialized = 0;
@@ -96,9 +95,8 @@ int accept_client(int server_fd) {
         return -1;
     }
     
-    /* Get client IP address for logging */
-    char client_ip[INET_ADDRSTRLEN];
-    inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, sizeof(client_ip));
+    /* Get client IP address for logging - use inet_ntoa for Windows compatibility */
+    char *client_ip = inet_ntoa(client_addr.sin_addr);
     printf("[Network] Client connected from %s:%d (fd=%d)\n", 
            client_ip, ntohs(client_addr.sin_port), client_fd);
     
@@ -125,8 +123,9 @@ int connect_to_server(const char *host, int port) {
     addr.sin_family = AF_INET;
     addr.sin_port = htons(port);
     
-    // Try to convert host as IP address first
-    if (inet_pton(AF_INET, host, &addr.sin_addr) <= 0) {
+    // Try to convert host as IP address first using inet_addr (Windows compatible)
+    addr.sin_addr.s_addr = inet_addr(host);
+    if (addr.sin_addr.s_addr == INADDR_NONE) {
         // Not an IP, try DNS lookup
         struct hostent *he = gethostbyname(host);
         if (he == NULL) {

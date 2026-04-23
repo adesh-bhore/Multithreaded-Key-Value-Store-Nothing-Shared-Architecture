@@ -3,6 +3,14 @@
 #include <string.h>
 #include <ctype.h>
 
+/* Windows compatibility for strtok_r */
+#ifdef _WIN32
+    #include <stdlib.h>
+    /* strtok_s is available in Windows but needs proper declaration */
+    char *strtok_s(char *str, const char *delim, char **context);
+    #define strtok_r strtok_s
+#endif
+
 
 //helper to upper case converstion 
 static void str_toupper(char *str) {
@@ -130,7 +138,12 @@ void format_error_response(char *buf, size_t len, const char *msg) {
 void format_bulk_string(char *buf, size_t len, const char *value) {
    
     size_t value_len = strlen(value);
-    snprintf(buf, len, "$%zu\r\n%s\r\n", value_len, value);
+    /* Use %lu for size_t on Windows (MinGW), %zu on Unix */
+    #ifdef _WIN32
+        snprintf(buf, len, "$%lu\r\n%s\r\n", (unsigned long)value_len, value);
+    #else
+        snprintf(buf, len, "$%zu\r\n%s\r\n", value_len, value);
+    #endif
 }
 
 void format_null_response(char *buf, size_t len) {

@@ -4,9 +4,14 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* Windows compatibility */
+#ifdef _WIN32
+    #include <winsock2.h>
+#endif
+
 
 /* ── Configuration ──────────────────────────────────────────────────────── */
-#define DEFAULT_HOST "127.0.0.1"
+#define DEFAULT_HOST "51.21.226.149"
 #define DEFAULT_PORT 6379
 #define INPUT_BUF_SIZE 4096
 #define RESPONSE_BUF_SIZE 4096

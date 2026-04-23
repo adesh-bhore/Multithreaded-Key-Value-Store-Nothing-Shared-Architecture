@@ -1,0 +1,40 @@
+{
+  "name": "dragonfly-cli",
+  "version": "1.0.3",
+  "description": "Command-line client for DragonFlyDB - A Redis-like key-value store",
+  "main": "index.js",
+  "bin": {
+    "dragonfly-cli": "./bin/dragonfly-cli.js"
+  },
+  "scripts": {
+    "postinstall": "node install.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "dragonfly",
+    "dragonflydb",
+    "redis",
+    "cli",
+    "key-value",
+    "database",
+    "client"
+  ],
+  "author": "Your Name adeshbhore107@gmail.com",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/adesh-bhore/https://github.com/adesh-bhore/Multithreaded-Key-Value-Store-Nothing-Shared-Architecture.git"
+  },
+  "bugs": {
+    "url": "https://github.com/adesh-bhore/https://github.com/adesh-bhore/Multithreaded-Key-Value-Store-Nothing-Shared-Architecture/issues"
+  },
+  "homepage": "https://github.com/adesh-bhore/https://github.com/adesh-bhore/Multithreaded-Key-Value-Store-Nothing-Shared-Architecture#readme",
+  "engines": {
+    "node": ">=12.0.0"
+  },
+  "os": [
+    "linux",
+    "darwin",
+    "win32"
+  ]
+}
