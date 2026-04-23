@@ -176,18 +176,21 @@ int send_all(int sockfd, const char *buf, size_t len) {
 int recv_line(int sockfd, char *buf, size_t max_len) {
     size_t pos = 0;
     
-    /* Read one byte at a time until we find \r\n
-     * Not the most efficient, but simple and works for text protocols */
+    /* Read one byte at a time until we find \r\n */
     while (pos < max_len - 1) {
         char c;
-        int n = recv(sockfd, &c, 1, 0);
+        ssize_t n = recv(sockfd, &c, 1, 0);
         
         if (n < 0) {
             perror("recv");
             return -1;
         }
         if (n == 0) {
-            // Connection closed
+            // Connection closed - but if we have data, return it
+            if (pos > 0) {
+                buf[pos] = '\0';
+                return pos;
+            }
             return 0;
         }
         
@@ -198,11 +201,17 @@ int recv_line(int sockfd, char *buf, size_t max_len) {
             buf[pos-2] = '\0';  // Null-terminate, removing \r\n
             return pos - 2;     // Return length without \r\n
         }
+        
+        /* Also handle just \n (Unix style) */
+        if (c == '\n') {
+            buf[pos-1] = '\0';  // Remove \n
+            return pos - 1;
+        }
     }
     
-    /* Buffer full without finding \r\n */
+    /* Buffer full without finding terminator */
     buf[max_len-1] = '\0';
-    return -1;
+    return pos;
 }
 
 void close_socket(int sockfd) {
