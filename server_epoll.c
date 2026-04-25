@@ -74,7 +74,7 @@ static void handle_client_command(ClientState* client , const char *line){
 
         case CMD_TYPE_PING: {
             // send PONG_ADESH 
-            send_all(client_fd, "PONG_ADESH", 10);
+            send_all(client->fd, "PONG_ADESH", 10);
             break;
         }
 
@@ -85,7 +85,7 @@ static void handle_client_command(ClientState* client , const char *line){
             } else {
                 format_integer_response(send_buf, sizeof(send_buf), 0);
             }
-            send_all(client_fd, send_buf, strlen(send_buf));
+            send_all(client->fd, send_buf, strlen(send_buf));
             break;
         }
 
@@ -96,7 +96,7 @@ static void handle_client_command(ClientState* client , const char *line){
             } else {
                 format_integer_response(send_buf, sizeof(send_buf), 0);
             }
-            send_all(client_fd, send_buf, strlen(send_buf));
+            send_all(client->fd, send_buf, strlen(send_buf));
             break;
         }
 
@@ -108,7 +108,7 @@ static void handle_client_command(ClientState* client , const char *line){
             } else {
                 format_error_response(send_buf, sizeof(send_buf), "INCR failed");
             }
-            send_all(client_fd, send_buf, strlen(send_buf));
+            send_all(client->fd, send_buf, strlen(send_buf));
             break;
         }
 
@@ -120,7 +120,7 @@ static void handle_client_command(ClientState* client , const char *line){
             } else {
                 format_error_response(send_buf, sizeof(send_buf), "DECR failed");
             }
-            send_all(client_fd, send_buf, strlen(send_buf));
+            send_all(client->fd, send_buf, strlen(send_buf));
             break;
         }
 
@@ -139,7 +139,7 @@ static void handle_client_command(ClientState* client , const char *line){
                     format_error_response(send_buf, sizeof(send_buf), "SET failed");
                 }
             }
-            send_all(client_fd, send_buf, strlen(send_buf));
+            send_all(client->fd, send_buf, strlen(send_buf));
             break;
         }
 
@@ -158,7 +158,7 @@ static void handle_client_command(ClientState* client , const char *line){
                     format_null_response(send_buf, sizeof(send_buf));
                 }
             }
-            send_all(client_fd, send_buf, strlen(send_buf));
+            send_all(client->fd, send_buf, strlen(send_buf));
             break;
         }
 
@@ -173,7 +173,7 @@ static void handle_client_command(ClientState* client , const char *line){
                 format_ok_response(send_buf, sizeof(send_buf));
                 printf("[Server] Client %d: BEGIN transaction\n", client_id);
             }
-            send_all(client_fd, send_buf, strlen(send_buf));
+            send_all(client->fd, send_buf, strlen(send_buf));
             break;
         }
 
@@ -189,14 +189,14 @@ static void handle_client_command(ClientState* client , const char *line){
                 format_ok_response(send_buf, sizeof(send_buf));
                 printf("[Server] Client %d: COMMIT transaction\n", client_id);
             }
-            send_all(client_fd, send_buf, strlen(send_buf));
+            send_all(client->fd, send_buf, strlen(send_buf));
             break;
         }
 
             /* ── QUIT (disconnect) ─────────────────────────────────────── */
         case CMD_TYPE_QUIT: {
             format_ok_response(send_buf, sizeof(send_buf));
-            send_all(client_fd, send_buf, strlen(send_buf));
+            send_all(client->fd, send_buf, strlen(send_buf));
             printf("[Server] Client %d: QUIT\n", client_id);
             goto cleanup;  // Exit loop
         }
@@ -205,7 +205,7 @@ static void handle_client_command(ClientState* client , const char *line){
         case CMD_TYPE_INVALID:
         default: {
             format_error_response(send_buf, sizeof(send_buf), "Unknown command");
-            send_all(client_fd, send_buf, strlen(send_buf));
+            send_all(client->fd, send_buf, strlen(send_buf));
             break;
         }
     }
@@ -353,14 +353,14 @@ int main(void) {
         for(int i=0; i < nfds; i++){
              if (events[i].data.fd == server_fd) {
                 /* New connection */
-                int client_fd = accept_client(server_fd);
-                if (client_fd < 0) continue;
+                int client->fd = accept_client(server_fd);
+                if (client->fd < 0) continue;
                 
-                set_nonblocking(client_fd);
+                set_nonblocking(client->fd);
 
                  /* Create client state */
                 ClientState *client = malloc(sizeof(ClientState));
-                client->fd = client_fd;
+                client->fd = client->fd;
                 client->client_id = ++client_counter;
                 response_queue_init(&client->rq);
                 client->in_transaction = 0;
@@ -369,15 +369,15 @@ int main(void) {
                 /* Add to epoll */
                 ev.events = EPOLLIN | EPOLLET;  // Edge-triggered
                 ev.data.ptr = client;
-                if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client_fd, &ev) == -1) {
-                    perror("epoll_ctl: client_fd");
-                    close_socket(client_fd);
+                if (epoll_ctl(epoll_fd, EPOLL_CTL_ADD, client->fd, &ev) == -1) {
+                    perror("epoll_ctl: client->fd");
+                    close_socket(client->fd);
                     free(client);
                     continue;
                 }
                 
                 printf("[Server] Client %d connected (fd=%d)\n", 
-                       client->client_id, client_fd);
+                       client->client_id, client->fd);
             }
             else{
                 /* Client data */
