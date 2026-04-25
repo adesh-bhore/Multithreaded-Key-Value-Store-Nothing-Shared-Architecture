@@ -207,7 +207,7 @@ static void handle_client_command(ClientState* client , const char *line){
         case CMD_TYPE_QUIT: {
             format_ok_response(send_buf, sizeof(send_buf));
             send_all(client->fd, send_buf, strlen(send_buf));
-            printf("[Server] Client %d: QUIT\n", client_id);
+            printf("[Server] Client %d: QUIT\n", client->client_id);
             //goto cleanup;  // Exit loop
             client->fd = -1; 
             break;
@@ -355,14 +355,15 @@ int main(void) {
 
         for(int i=0; i < nfds; i++){
              if (events[i].data.fd == server_fd) {
-                /* New connection */
-                clients->fd = accept_client(server_fd);
-                if (client->fd < 0) continue;
-                
-                set_nonblocking(clients->fd);
-
+               
                  /* Create client state */
                 ClientState *client = malloc(sizeof(ClientState));
+                 /* New connection */
+                client->fd = accept_client(server_fd);
+                if (client->fd < 0) continue;
+                
+                set_nonblocking(client->fd);
+                client->recv_buf[0] = '\0';
                 client->fd = client->fd;
                 client->client_id = ++client_counter;
                 response_queue_init(&client->rq);
