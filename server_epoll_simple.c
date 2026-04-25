@@ -135,8 +135,10 @@ static void handle_client_command(ClientState *client, const char *line) {
             format_ok_response(send_buf, sizeof(send_buf));
             send_all(client->fd, send_buf, strlen(send_buf));
             printf("[Server] Client %d: QUIT\n", client->client_id);
-            close_socket(client->fd);
-            client->fd = -1;  // Mark for cleanup
+            // Mark socket as closed - process_client_data will handle cleanup
+            int fd = client->fd;
+            client->fd = -1;
+            close_socket(fd);
             break;
         }
         
@@ -151,6 +153,11 @@ static void handle_client_command(ClientState *client, const char *line) {
 /* Process client data */
 static void process_client_data(ClientState *client) {
     char temp_buf[RECV_BUF_SIZE];
+    
+    /* Check if socket was already closed (e.g., by QUIT command) */
+    if (client->fd == -1) {
+        return;
+    }
     
     /* Edge-triggered epoll requires reading until EAGAIN */
     while (1) {
@@ -199,6 +206,11 @@ static void process_client_data(ClientState *client) {
         /* Handle command */
         if (strlen(line_start) > 0) {
             handle_client_command(client, line_start);
+            
+            /* Check if socket was closed by command (e.g., QUIT) */
+            if (client->fd == -1) {
+                return;
+            }
         }
         
         line_start = line_end + 2;  // Skip \r\n

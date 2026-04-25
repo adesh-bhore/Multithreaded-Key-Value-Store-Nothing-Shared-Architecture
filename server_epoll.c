@@ -208,8 +208,9 @@ static void handle_client_command(ClientState* client , const char *line){
             format_ok_response(send_buf, sizeof(send_buf));
             send_all(client->fd, send_buf, strlen(send_buf));
             printf("[Server] Client %d: QUIT\n", client->client_id);
-            //goto cleanup;  // Exit loop
-            client->fd = -1; 
+            int fd = client->fd;
+            client->fd = -1;
+            close_socket(fd);
             break;
         }
         
@@ -225,6 +226,11 @@ static void handle_client_command(ClientState* client , const char *line){
 
 static void process_client_data(ClientState* client){
     char temp_buf[RECV_BUF_SIZE];
+
+    /* Check if socket was already closed (e.g., by QUIT command) */
+    if (client->fd == -1) {
+        return;
+    }
 
      /* Read data */
     int n = recv(client->fd, temp_buf, sizeof(temp_buf) - 1, 0);
@@ -263,6 +269,10 @@ static void process_client_data(ClientState* client){
         /* Handle command */
         if (strlen(line_start) > 0) {
             handle_client_command(client, line_start);
+            /* Check if socket was closed by command (e.g., QUIT) */
+            if (client->fd == -1) {
+                return;
+            }
         }
         
         line_start = line_end + 2;  // Skip \r\n
