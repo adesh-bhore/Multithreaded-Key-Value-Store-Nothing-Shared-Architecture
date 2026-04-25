@@ -194,10 +194,10 @@ static void handle_client_command(ClientState* client , const char *line){
                                     "Not in transaction");
             } else {
                 // Execute transaction using Phase 3 two-phase commit
-                tx_run(&rq, &tx, client_id);
+                tx_run(&rq, &tx, client->client_id);
                 in_transaction = 0;
                 format_ok_response(send_buf, sizeof(send_buf));
-                printf("[Server] Client %d: COMMIT transaction\n", client_id);
+                printf("[Server] Client %d: COMMIT transaction\n", client->client_id);
             }
             send_all(client->fd, send_buf, strlen(send_buf));
             break;
@@ -356,10 +356,10 @@ int main(void) {
         for(int i=0; i < nfds; i++){
              if (events[i].data.fd == server_fd) {
                 /* New connection */
-                client->fd = accept_client(server_fd);
+                clients->fd = accept_client(server_fd);
                 if (client->fd < 0) continue;
                 
-                set_nonblocking(client->fd);
+                set_nonblocking(clients->fd);
 
                  /* Create client state */
                 ClientState *client = malloc(sizeof(ClientState));
