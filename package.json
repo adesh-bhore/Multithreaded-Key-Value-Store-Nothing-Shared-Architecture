@@ -1,6 +1,6 @@
 {
   "name": "dragonfly-cli",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Command-line client for DragonFlyDB - A Redis-like key-value store",
   "main": "index.js",
   "bin": {
