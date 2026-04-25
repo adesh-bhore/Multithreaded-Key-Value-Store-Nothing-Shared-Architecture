@@ -49,25 +49,25 @@ static void print_dragon_ascii(void) {
 
 static void print_welcome_message(const char *host, int port) {
     printf(COLOR_BRIGHT_CYAN);
-    printf("╔════════════════════════════════════════════════════════════════╗\n");
-    printf("║                                                                ║\n");
-    printf("║  " COLOR_BRIGHT_WHITE "Connected to DragonFlyDB" COLOR_BRIGHT_CYAN "                                   ║\n");
-    printf("║  " COLOR_WHITE "Server: " COLOR_YELLOW "%-50s" COLOR_BRIGHT_CYAN " ║\n", host);
-    printf("║  " COLOR_WHITE "Port:   " COLOR_YELLOW "%-50d" COLOR_BRIGHT_CYAN " ║\n", port);
-    printf("║                                                                ║\n");
-    printf("║  " COLOR_DIM "Type 'help' for available commands" COLOR_BRIGHT_CYAN "                          ║\n");
-    printf("║  " COLOR_DIM "Type 'quit' or press Ctrl+C to exit" COLOR_BRIGHT_CYAN "                        ║\n");
-    printf("║                                                                ║\n");
-    printf("╚════════════════════════════════════════════════════════════════╝\n");
+    printf("+================================================================+\n");
+    printf("|                                                                |\n");
+    printf("|  " COLOR_BRIGHT_WHITE "Connected to DragonFlyDB" COLOR_BRIGHT_CYAN "                                   |\n");
+    printf("|  " COLOR_WHITE "Server: " COLOR_YELLOW "%-50s" COLOR_BRIGHT_CYAN " |\n", host);
+    printf("|  " COLOR_WHITE "Port:   " COLOR_YELLOW "%-50d" COLOR_BRIGHT_CYAN " |\n", port);
+    printf("|                                                                |\n");
+    printf("|  " COLOR_DIM "Type 'help' for available commands" COLOR_BRIGHT_CYAN "                          |\n");
+    printf("|  " COLOR_DIM "Type 'quit' or press Ctrl+C to exit" COLOR_BRIGHT_CYAN "                        |\n");
+    printf("|                                                                |\n");
+    printf("+================================================================+\n");
     printf(COLOR_RESET);
     printf("\n");
 }
 
 static void print_help(void) {
     printf(COLOR_BRIGHT_YELLOW COLOR_BOLD);
-    printf("\n╔═══════════════════════════════════════════════════════════════╗\n");
-    printf("║                      AVAILABLE COMMANDS                       ║\n");
-    printf("╚═══════════════════════════════════════════════════════════════╝\n");
+    printf("\n+===============================================================+\n");
+    printf("|                      AVAILABLE COMMANDS                       |\n");
+    printf("+===============================================================+\n");
     printf(COLOR_RESET);
     
     printf(COLOR_CYAN "  String Commands:\n" COLOR_RESET);
