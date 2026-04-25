@@ -40,7 +40,13 @@ static void print_response(const char *response) {
             printf("\"%s\"\n", response + strlen(response) + 1);
         }
         
-    } else {
+    } 
+    else if (response[0] == ':') {
+        /* Integer response: :123 */
+        long long value = atoll(response + 1);
+        printf("(integer) %lld\n", value);
+    }
+    else {
         /* Unknown format */
         printf("%s\n", response);
     }
@@ -110,6 +116,11 @@ static void print_response(const char *response) {
             printf("Commands:\n");
             printf("  SET key value    - Set a key to a value\n");
             printf("  GET key          - Get the value of a key\n");
+            printf("  DEL key          - Delete a key\n");
+            printf("  EXISTS key       - Check if key exists\n");
+            printf("  INCR key         - Increment integer value\n");
+            printf("  DECR key         - Decrement integer value\n");
+            printf("  PING             - Test connection\n");
             printf("  BEGIN            - Start a transaction\n");
             printf("  COMMIT           - Commit a transaction\n");
             printf("  QUIT             - Disconnect from server\n");

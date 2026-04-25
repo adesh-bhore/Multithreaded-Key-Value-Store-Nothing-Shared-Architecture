@@ -78,7 +78,59 @@ static void *client_handler(void *arg) {
 
         switch(cmd.type){
 
-              case CMD_TYPE_SET: {
+            case CMD_TYPE_PING: {
+                // send PONG_ADESH 
+                send_all(client_fd, "PONG_ADESH", 10);
+                break;
+            }
+
+            case CMD_TYPE_DEL: {
+                Response resp = io_del(&rq, cmd.key);
+                if (resp.ack == ACK_OK) {
+                    format_integer_response(send_buf, sizeof(send_buf), 1);
+                } else {
+                    format_integer_response(send_buf, sizeof(send_buf), 0);
+                }
+                send_all(client_fd, send_buf, strlen(send_buf));
+                break;
+            }
+
+            case CMD_TYPE_EXISTS: {
+                Response resp = io_exists(&rq, cmd.key);
+                if (resp.ack == ACK_OK) {
+                    format_integer_response(send_buf, sizeof(send_buf), 1);
+                } else {
+                    format_integer_response(send_buf, sizeof(send_buf), 0);
+                }
+                send_all(client_fd, send_buf, strlen(send_buf));
+                break;
+            }
+
+            case CMD_TYPE_INCR: {
+                Response resp = io_incr(&rq, cmd.key);
+                if (resp.ack == ACK_OK) {
+                    long long value = atoll(resp.value);
+                    format_integer_response(send_buf, sizeof(send_buf), value);
+                } else {
+                    format_error_response(send_buf, sizeof(send_buf), "INCR failed");
+                }
+                send_all(client_fd, send_buf, strlen(send_buf));
+                break;
+            }
+
+            case CMD_TYPE_DECR: {
+                Response resp = io_decr(&rq, cmd.key);
+                if (resp.ack == ACK_OK) {
+                    long long value = atoll(resp.value);
+                    format_integer_response(send_buf, sizeof(send_buf), value);
+                } else {
+                    format_error_response(send_buf, sizeof(send_buf), "DECR failed");
+                }
+                send_all(client_fd, send_buf, strlen(send_buf));
+                break;
+            }
+
+            case CMD_TYPE_SET: {
                 if (in_transaction) {
                     // Inside transaction: queue operation
                     tx_add(&tx, CMD_SET, cmd.key, cmd.value);

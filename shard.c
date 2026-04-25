@@ -83,6 +83,67 @@ static void *shard_worker(void *args) {
                 resp.ack = ACK_EXECUTED;
                 break;
 
+            case CMD_DEL: {
+                int found = ht_delete(&shard->table, req.key);
+                
+                resp.ack = found ? ACK_OK : ACK_NOT_FOUND;
+                resp.value[0] = '\0';
+                
+                printf("[Shard %d] DEL  %-20s → %s\n", 
+                    shard->id, req.key, found ? "deleted" : "not found");
+                break;
+            }
+
+            case CMD_EXISTS: {
+                char *value = ht_get(&shard->table, req.key);
+                
+                resp.ack = value ? ACK_OK : ACK_NOT_FOUND;
+                resp.value[0] = '\0';
+                
+                printf("[Shard %d] EXISTS %-20s → %s\n", 
+                    shard->id, req.key, value ? "yes" : "no");
+                break;
+            }
+
+            case CMD_INCR: {
+                char *value = ht_get(&shard->table, req.key);
+                long long num = 0;
+                
+                if (value) {
+                    num = atoll(value);
+                }
+                num++;
+                
+                char new_value[MAX_VAL_LEN];
+                snprintf(new_value, sizeof(new_value), "%lld", num);
+                ht_set(&shard->table, req.key, new_value);
+                
+                resp.ack = ACK_OK;
+                strncpy(resp.value, new_value, MAX_VAL_LEN - 1);
+                
+                printf("[Shard %d] INCR %-20s → %lld\n", shard->id, req.key, num);
+                break;
+            }
+
+            case CMD_DECR: {
+                char *value = ht_get(&shard->table, req.key);
+                long long num = 0;
+                
+                if (value) {
+                    num = atoll(value);
+                }
+                num--;
+                
+                char new_value[MAX_VAL_LEN];
+                snprintf(new_value, sizeof(new_value), "%lld", num);
+                ht_set(&shard->table, req.key, new_value);
+                
+                resp.ack = ACK_OK;
+                strncpy(resp.value, new_value, MAX_VAL_LEN - 1);
+                
+                printf("[Shard %d] DECR %-20s → %lld\n", shard->id, req.key, num);
+                break;
+            }
             /* ── Graceful shutdown ── */
             case CMD_STOP:
                 /*

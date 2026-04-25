@@ -58,6 +58,8 @@ int parse_command(const char *line, Command *cmd) {
     /* Convert to uppercase for case-insensitive matching */
     str_toupper(cmd_str);
 
+    
+
     /* ── SET key value ────────────────────────────────────────────────── */
     if (strcmp(cmd_str, "SET") == 0) {
         cmd->type = CMD_TYPE_SET;
@@ -114,7 +116,79 @@ int parse_command(const char *line, Command *cmd) {
         cmd->type = CMD_TYPE_QUIT;
         return 0;
     }
-    
+
+    /* ── PING ─────────────────────────────────────────────────────────── */
+    else if (strcmp(cmd_str, "PING") == 0) {
+        cmd->type = CMD_TYPE_PING;
+        return 0;
+    }
+
+    /* ── DEL key ──────────────────────────────────────────────────────── */
+    else if (strcmp(cmd_str, "DEL") == 0) {
+        cmd->type = CMD_TYPE_DEL;
+        
+        // Parse key
+        char *key = strtok_r(NULL, " \t", &saveptr);
+        if (!key) {
+            fprintf(stderr, "[Protocol] DEL missing key\n");
+            return -1;
+        }
+        strncpy(cmd->key, key, MAX_KEY_LEN - 1);
+        
+        return 0;
+    }
+
+    /* ── EXISTS key ───────────────────────────────────────────────────── */
+    else if (strcmp(cmd_str, "EXISTS") == 0) {
+        cmd->type = CMD_TYPE_EXISTS;
+        
+        // Parse key
+        char *key = strtok_r(NULL, " \t", &saveptr);
+        if (!key) {
+            fprintf(stderr, "[Protocol] EXISTS missing key\n");
+            return -1;
+        }
+        strncpy(cmd->key, key, MAX_KEY_LEN - 1);
+        
+        return 0;
+    }
+
+    /* ── INCR key ─────────────────────────────────────────────────────── */
+    else if (strcmp(cmd_str, "INCR") == 0) {
+        cmd->type = CMD_TYPE_INCR;
+        
+        // Parse key
+        char *key = strtok_r(NULL, " \t", &saveptr);
+        if (!key) {
+            fprintf(stderr, "[Protocol] INCR missing key\n");
+            return -1;
+        }
+        strncpy(cmd->key, key, MAX_KEY_LEN - 1);
+        
+        return 0;
+    }
+
+    /* ── DECR key ─────────────────────────────────────────────────────── */
+    else if (strcmp(cmd_str, "DECR") == 0) {
+        cmd->type = CMD_TYPE_DECR;
+        
+        // Parse key
+        char *key = strtok_r(NULL, " \t", &saveptr);
+        if (!key) {
+            fprintf(stderr, "[Protocol] DECR missing key\n");
+            return -1;
+        }
+        strncpy(cmd->key, key, MAX_KEY_LEN - 1);
+        
+        return 0;
+    }
+
+    /* ── FLUSHALL ─────────────────────────────────────────────────────── */
+    else if (strcmp(cmd_str, "FLUSHALL") == 0) {
+        cmd->type = CMD_TYPE_FLUSHALL;
+        return 0;
+    }
+            
     /* ── Unknown command ──────────────────────────────────────────────── */
     else {
         fprintf(stderr, "[Protocol] Unknown command: %s\n", cmd_str);
@@ -149,5 +223,34 @@ void format_bulk_string(char *buf, size_t len, const char *value) {
 void format_null_response(char *buf, size_t len) {
     
     snprintf(buf, len, "$-1\r\n");
+}
+
+/* Format integer response: :123\r\n */
+void format_integer_response(char *buf, size_t len, long long value) {
+    #ifdef _WIN32
+        snprintf(buf, len, ":%lld\r\n", value);
+    #else
+        snprintf(buf, len, ":%lld\r\n", value);
+    #endif
+}
+
+/* Format array response: *2\r\n$3\r\nkey\r\n$5\r\nvalue\r\n */
+void format_array_response(char *buf, size_t len, char **items, int count) {
+    int offset = 0;
+    
+    // Array header
+    offset += snprintf(buf + offset, len - offset, "*%d\r\n", count);
+    
+    // Each item as bulk string
+    for (int i = 0; i < count && offset < len; i++) {
+        size_t item_len = strlen(items[i]);
+        #ifdef _WIN32
+            offset += snprintf(buf + offset, len - offset, "$%lu\r\n%s\r\n", 
+                             (unsigned long)item_len, items[i]);
+        #else
+            offset += snprintf(buf + offset, len - offset, "$%zu\r\n%s\r\n", 
+                             item_len, items[i]);
+        #endif
+    }
 }
     

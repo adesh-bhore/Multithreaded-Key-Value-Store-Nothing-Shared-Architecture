@@ -18,6 +18,13 @@ typedef enum {
     CMD_TYPE_COMMIT,    // COMMIT (end transaction)
     CMD_TYPE_QUIT,      // QUIT (disconnect)
     CMD_TYPE_INVALID    // Parse error
+    CMD_TYPE_DEL,        // NEW
+    CMD_TYPE_EXISTS,     // NEW
+    CMD_TYPE_PING,       // NEW
+    CMD_TYPE_INCR,       // NEW
+    CMD_TYPE_DECR,       // NEW
+    CMD_TYPE_KEYS,       // NEW
+    CMD_TYPE_FLUSHALL,   // NEW
 } CmdType;
 
 /* ── Parsed Command Structure ───────────────────────────────────────────── */
@@ -40,5 +47,9 @@ void format_bulk_string(char *buf, size_t len, const char *value);
 
 
 void format_null_response(char *buf, size_t len);
+
+
+void format_integer_response(char *buf, size_t len, long long value);
+void format_array_response(char *buf, size_t len, char **items, int count);
 
 #endif // PROTOCOL_H
