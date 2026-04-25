@@ -55,7 +55,11 @@ static void print_response_colored(const char *response, const char *value) {
     } else if (response[0] == ':') {
         /* Integer */
         long long num = atoll(response + 1);
-        printf(COLOR_BRIGHT_MAGENTA "(integer) %lld\n" COLOR_RESET, num);
+        #ifdef _WIN32
+            printf(COLOR_BRIGHT_MAGENTA "(integer) %I64d\n" COLOR_RESET, num);
+        #else
+            printf(COLOR_BRIGHT_MAGENTA "(integer) %lld\n" COLOR_RESET, num);
+        #endif
         
     } else {
         /* Unknown */

@@ -1,7 +1,7 @@
 {
   "name": "dragonfly-cli",
   "version": "1.0.4",
-  "description": "Command-line client for DragonFlyDB - A Redis-like key-value store",
+  "description": "Command-line client for DragonFlyDB - A high-performance Redis-like key-value store with epoll-based server",
   "main": "index.js",
   "bin": {
     "dragonfly-cli": "./bin/dragonfly-cli.js"
@@ -17,18 +17,20 @@
     "cli",
     "key-value",
     "database",
-    "client"
+    "client",
+    "epoll",
+    "high-performance"
   ],
-  "author": "Your Name adeshbhore107@gmail.com",
+  "author": "Adesh Bhore <adeshbhore107@gmail.com>",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/adesh-bhore/https://github.com/adesh-bhore/Multithreaded-Key-Value-Store-Nothing-Shared-Architecture.git"
+    "url": "https://github.com/adesh-bhore/Multithreaded-Key-Value-Store-Nothing-Shared-Architecture.git"
   },
   "bugs": {
-    "url": "https://github.com/adesh-bhore/https://github.com/adesh-bhore/Multithreaded-Key-Value-Store-Nothing-Shared-Architecture/issues"
+    "url": "https://github.com/adesh-bhore/Multithreaded-Key-Value-Store-Nothing-Shared-Architecture/issues"
   },
-  "homepage": "https://github.com/adesh-bhore/https://github.com/adesh-bhore/Multithreaded-Key-Value-Store-Nothing-Shared-Architecture#readme",
+  "homepage": "https://github.com/adesh-bhore/Multithreaded-Key-Value-Store-Nothing-Shared-Architecture#readme",
   "engines": {
     "node": ">=12.0.0"
   },

@@ -5,6 +5,9 @@
 #ifdef _WIN32
     /* Windows 10+ supports ANSI colors */
     #include <windows.h>
+    #ifndef ENABLE_VIRTUAL_TERMINAL_PROCESSING
+        #define ENABLE_VIRTUAL_TERMINAL_PROCESSING 0x0004
+    #endif
     static void enable_ansi_colors(void) {
         HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
         DWORD dwMode = 0;

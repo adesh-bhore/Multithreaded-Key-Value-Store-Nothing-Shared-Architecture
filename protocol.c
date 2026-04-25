@@ -228,7 +228,7 @@ void format_null_response(char *buf, size_t len) {
 /* Format integer response: :123\r\n */
 void format_integer_response(char *buf, size_t len, long long value) {
     #ifdef _WIN32
-        snprintf(buf, len, ":%lld\r\n", value);
+        snprintf(buf, len, ":%I64d\r\n", value);
     #else
         snprintf(buf, len, ":%lld\r\n", value);
     #endif
