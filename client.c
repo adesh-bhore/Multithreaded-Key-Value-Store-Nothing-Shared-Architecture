@@ -224,10 +224,10 @@ cleanup:
     /* Cleanup */
     close_socket(sockfd);
     printf("\n");
-    printf(COLOR_BRIGHT_CYAN "╔════════════════════════════════════════╗\n");
-    printf("║  " COLOR_BRIGHT_WHITE "Disconnected from DragonFlyDB" COLOR_BRIGHT_CYAN "      ║\n");
-    printf("║  " COLOR_DIM "Thank you for using DragonFlyDB!" COLOR_BRIGHT_CYAN "   ║\n");
-    printf("╚════════════════════════════════════════╝\n");
+   
+    printf(" " COLOR_BRIGHT_WHITE "Disconnected from DragonFlyDB" COLOR_BRIGHT_CYAN "      \n");
+    printf("  " COLOR_DIM "Thank you for using DragonFlyDB!" COLOR_BRIGHT_CYAN "   \n");
+   
     printf(COLOR_RESET);
     printf("\n");
     return 0;
