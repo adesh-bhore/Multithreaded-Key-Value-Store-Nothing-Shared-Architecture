@@ -58,6 +58,16 @@ static int set_nonblocking(int fd) {
 static void handle_client_command(ClientState* client , const char *line){
     char send_buf[SEND_BUF_SIZE];
 
+
+     /* Create response queue for this client
+     * This is how we receive responses from shard workers */
+    ResponseQueue rq;
+    response_queue_init(&rq);
+    
+    /* Transaction state (for BEGIN/COMMIT) */
+    Transaction tx;
+    int in_transaction = 0;
+
     /* Parse command */
     Command cmd;
     if (parse_command(line, &cmd) < 0) {
@@ -171,7 +181,7 @@ static void handle_client_command(ClientState* client , const char *line){
                 tx_init(&tx);
                 in_transaction = 1;
                 format_ok_response(send_buf, sizeof(send_buf));
-                printf("[Server] Client %d: BEGIN transaction\n", client_id);
+                printf("[Server] Client %d: BEGIN transaction\n", client->client_id);
             }
             send_all(client->fd, send_buf, strlen(send_buf));
             break;
@@ -198,7 +208,9 @@ static void handle_client_command(ClientState* client , const char *line){
             format_ok_response(send_buf, sizeof(send_buf));
             send_all(client->fd, send_buf, strlen(send_buf));
             printf("[Server] Client %d: QUIT\n", client_id);
-            goto cleanup;  // Exit loop
+            //goto cleanup;  // Exit loop
+            client->fd = -1; 
+            break;
         }
         
         /* ── Invalid command ───────────────────────────────────────── */
@@ -298,15 +310,6 @@ int main(void) {
         return 1;
     }
     
-
-      /* Create server socket */
-    printf("[Server] Creating server socket on port %d...\n", SERVER_PORT);
-    int server_fd = create_server_socket(SERVER_PORT);
-    if (server_fd < 0) {
-        fprintf(stderr, "[Server] Failed to create server socket\n");
-        return 1;
-    }
-    
     set_nonblocking(server_fd);
 
 #ifdef __linux__
@@ -353,7 +356,7 @@ int main(void) {
         for(int i=0; i < nfds; i++){
              if (events[i].data.fd == server_fd) {
                 /* New connection */
-                int client->fd = accept_client(server_fd);
+                client->fd = accept_client(server_fd);
                 if (client->fd < 0) continue;
                 
                 set_nonblocking(client->fd);
