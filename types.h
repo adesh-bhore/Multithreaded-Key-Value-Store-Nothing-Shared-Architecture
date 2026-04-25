@@ -22,6 +22,10 @@
 typedef enum {
     CMD_SET,
     CMD_GET,
+    CMD_DEL,
+    CMD_EXISTS,
+    CMD_INCR,
+    CMD_DECR,
     CMD_SCHEDULE,
     CMD_EXECUTE,
     CMD_STOP

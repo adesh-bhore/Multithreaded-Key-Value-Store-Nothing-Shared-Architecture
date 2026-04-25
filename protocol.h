@@ -14,17 +14,17 @@
 typedef enum {
     CMD_TYPE_SET,       // SET key value
     CMD_TYPE_GET,       // GET key
+    CMD_TYPE_DEL,       // DEL key
+    CMD_TYPE_EXISTS,    // EXISTS key
+    CMD_TYPE_PING,      // PING
+    CMD_TYPE_INCR,      // INCR key
+    CMD_TYPE_DECR,      // DECR key
+    CMD_TYPE_KEYS,      // KEYS pattern
+    CMD_TYPE_FLUSHALL,  // FLUSHALL
     CMD_TYPE_BEGIN,     // BEGIN (start transaction)
     CMD_TYPE_COMMIT,    // COMMIT (end transaction)
     CMD_TYPE_QUIT,      // QUIT (disconnect)
     CMD_TYPE_INVALID    // Parse error
-    CMD_TYPE_DEL,        // NEW
-    CMD_TYPE_EXISTS,     // NEW
-    CMD_TYPE_PING,       // NEW
-    CMD_TYPE_INCR,       // NEW
-    CMD_TYPE_DECR,       // NEW
-    CMD_TYPE_KEYS,       // NEW
-    CMD_TYPE_FLUSHALL,   // NEW
 } CmdType;
 
 /* ── Parsed Command Structure ───────────────────────────────────────────── */

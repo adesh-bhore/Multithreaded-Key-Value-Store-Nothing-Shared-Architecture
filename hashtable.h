@@ -7,6 +7,7 @@
 void ht_init(HashTable *table);
 int ht_set(HashTable *table, const char *key, const char *value);
 int ht_get(HashTable *table, const char *key, char *out_value);
+int ht_delete(HashTable *table, const char *key);
 
 // Helper: determine which shard a key belongs to
 int key_to_shard(const char *key);

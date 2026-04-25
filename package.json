@@ -36,5 +36,17 @@
     "linux",
     "darwin",
     "win32"
+  ],
+  "files": [
+    "client.c",
+    "network.c",
+    "network.h",
+    "protocol.c",
+    "protocol.h",
+    "colors.h",
+    "ascii_art.h",
+    "bin/",
+    "install.js",
+    "README.md"
   ]
 }

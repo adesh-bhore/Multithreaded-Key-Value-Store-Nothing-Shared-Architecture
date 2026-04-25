@@ -44,7 +44,7 @@ Response io_del(ResponseQueue* rq , const char* key){
 
     Request req;
     req.request_id = next_request_id();
-    req.type = CMD_TYPE_DEL;
+    req.type = CMD_DEL;
     
     req.reply_to = rq;
     strncpy(req.key, key, KEY_LEN-1);
@@ -61,7 +61,7 @@ Response io_exists(ResponseQueue* rq , const char* key){
 
     Request req;
     req.request_id = next_request_id();
-    req.type = CMD_TYPE_EXISTS;
+    req.type = CMD_EXISTS;
     strncpy(req.key , key , KEY_LEN-1);
     req.key[KEY_LEN-1] = '\0';
     
@@ -77,7 +77,7 @@ Response io_incr(ResponseQueue *rq, const char* key){
 
     Request req;
     req.request_id = next_request_id();
-    req.type = CMD_TYPE_INCR;
+    req.type = CMD_INCR;
     strncpy(req.key, key, KEY_LEN-1);
     req.key[KEY_LEN-1] = '\0';
 
@@ -94,7 +94,7 @@ Response io_decr(ResponseQueue* rq , const char* key){
 
     Request req;
     req.request_id = next_request_id();
-    req.type = CMD_TYPE_DECR;
+    req.type = CMD_DECR;
     strncpy(req.key, key, KEY_LEN-1);
     req.key[KEY_LEN-1] = '\0';
 

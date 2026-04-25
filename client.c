@@ -1,5 +1,7 @@
 #include "network.h"
 #include "protocol.h"
+#include "colors.h"
+#include "ascii_art.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +11,11 @@
     #include <winsock2.h>
 #endif
 
+#ifdef USE_READLINE
+    #include <readline/readline.h>
+    #include <readline/history.h>
+#endif
+
 
 /* ── Configuration ──────────────────────────────────────────────────────── */
 #define DEFAULT_HOST "51.21.226.149"
@@ -16,42 +23,45 @@
 #define INPUT_BUF_SIZE 4096
 #define RESPONSE_BUF_SIZE 4096
 
+/* Print colored prompt */
+static void print_prompt(int in_transaction) {
+    if (in_transaction) {
+        printf(COLOR_YELLOW "dragonfly" COLOR_BRIGHT_RED "(TX)" COLOR_RESET "> ");
+    } else {
+        printf(COLOR_CYAN "dragonfly" COLOR_RESET "> ");
+    }
+    fflush(stdout);
+}
 
-static void print_response(const char *response) {
+/* Print response with colors */
+static void print_response_colored(const char *response, const char *value) {
     if (response[0] == '+') {
-        /* Simple string: +OK\r\n */
-        printf("%s\n", response + 1);  // Skip '+'
+        /* Success: +OK */
+        printf(COLOR_GREEN "✓ " COLOR_RESET "%s\n", response + 1);
         
     } else if (response[0] == '-') {
-        /* Error: -ERR message\r\n */
-        printf("(error) %s\n", response + 1);  // Skip '-'
+        /* Error: -ERR message */
+        printf(COLOR_RED "✗ Error: " COLOR_RESET "%s\n", response + 5);
         
     } else if (response[0] == '$') {
-        /* Bulk string: $5\r\nvalue\r\n or $-1\r\n (null) */
-        int len = atoi(response + 1);  // Parse length
-        
+        /* Bulk string */
+        int len = atoi(response + 1);
         if (len == -1) {
-            printf("(nil)\n");
+            printf(COLOR_DIM "(nil)\n" COLOR_RESET);
         } else {
-            /* Read the actual value (next line) */
-            char value_buf[RESPONSE_BUF_SIZE];
-            // For simplicity, we assume value is already in buffer
-            // In production, you'd recv() the exact number of bytes
-            printf("\"%s\"\n", response + strlen(response) + 1);
+            printf(COLOR_BRIGHT_CYAN "\"%s\"\n" COLOR_RESET, value);
         }
         
-    } 
-    else if (response[0] == ':') {
-        /* Integer response: :123 */
-        long long value = atoll(response + 1);
-        printf("(integer) %lld\n", value);
-    }
-    else {
-        /* Unknown format */
+    } else if (response[0] == ':') {
+        /* Integer */
+        long long num = atoll(response + 1);
+        printf(COLOR_BRIGHT_MAGENTA "(integer) %lld\n" COLOR_RESET, num);
+        
+    } else {
+        /* Unknown */
         printf("%s\n", response);
     }
 }
-
 
 
 
@@ -61,7 +71,14 @@ static void print_response(const char *response) {
  * ══════════════════════════════════════════════════════════════════════════ */
 
  int main(int argc, char *argv[]) {
+
+    enable_ansi_colors();
+
+     /* Print logo */
+    print_dragon_logo();
+    print_dragon_ascii();
     /* Parse command-line arguments */
+
     const char *host = DEFAULT_HOST;
     int port = DEFAULT_PORT;
 
@@ -72,30 +89,28 @@ static void print_response(const char *response) {
         port = atoi(argv[2]);
     }
 
-    printf("=== DragonFlyDB Client ===\n\n");
-
-    /* Step 1: Connect to server */
-    printf("Connecting to %s:%d...\n", host, port);
+      /* Connect to server */
+    printf(COLOR_BRIGHT_WHITE "Connecting to %s:%d...\n" COLOR_RESET, host, port);
     int sockfd = connect_to_server(host, port);
     if (sockfd < 0) {
-        fprintf(stderr, "Failed to connect to %s:%d\n", host, port);
+        printf(COLOR_RED "✗ Failed to connect to %s:%d\n" COLOR_RESET, host, port);
         return 1;
     }
 
-    printf("Connected to DragonFlyDB at %s:%d\n", host, port);
-    printf("Type commands (SET key value, GET key, BEGIN, COMMIT, QUIT)\n");
-    printf("Type 'help' for command list\n\n");
+    /* Print welcome message */
+    print_welcome_message(host, port);
     
-
     /* Buffers */
     char input[INPUT_BUF_SIZE];
     char response[RESPONSE_BUF_SIZE];
+    int in_transaction = 0;
+
 
      /* Step 2: Interactive command loop */
     while (1) {
-        /* Display prompt */
-        printf("dragonfly> ");
-        fflush(stdout);
+       
+       /* Display prompt */
+        print_prompt(in_transaction);
         
         /* Read user input */
         if (!fgets(input, sizeof(input), stdin)) {
@@ -111,20 +126,19 @@ static void print_response(const char *response) {
         }
         
 
-         /* Handle special commands */
+        /* Handle special commands */
         if (strcmp(input, "help") == 0) {
-            printf("Commands:\n");
-            printf("  SET key value    - Set a key to a value\n");
-            printf("  GET key          - Get the value of a key\n");
-            printf("  DEL key          - Delete a key\n");
-            printf("  EXISTS key       - Check if key exists\n");
-            printf("  INCR key         - Increment integer value\n");
-            printf("  DECR key         - Decrement integer value\n");
-            printf("  PING             - Test connection\n");
-            printf("  BEGIN            - Start a transaction\n");
-            printf("  COMMIT           - Commit a transaction\n");
-            printf("  QUIT             - Disconnect from server\n");
-            printf("  help             - Show this help\n");
+            print_help();
+            continue;
+        }
+
+        if (strcmp(input, "clear") == 0) {
+            #ifdef _WIN32
+                system("cls");
+            #else
+                system("clear");
+            #endif
+            print_dragon_logo();
             continue;
         }
 
@@ -133,13 +147,14 @@ static void print_response(const char *response) {
             strcpy(input, "QUIT");
         }
 
+
         /* Add protocol terminator \r\n */
         strcat(input, "\r\n");
         
 
          /* Step 3: Send command to server */
         if (send_all(sockfd, input, strlen(input)) < 0) {
-            fprintf(stderr, "Send failed\n");
+            printf(COLOR_RED "✗ Send failed\n" COLOR_RESET);
             break;
         }
         
@@ -149,7 +164,7 @@ static void print_response(const char *response) {
         
          /* Read first line to determine response type */
         if (recv_line(sockfd, response, sizeof(response)) <= 0) {
-            fprintf(stderr, "Server disconnected\n");
+            printf(COLOR_RED "✗ Server disconnected\n" COLOR_RESET);
             break;
         }
 
@@ -168,7 +183,7 @@ static void print_response(const char *response) {
             int len = atoi(response + 1);
             
             if (len == -1) {
-                printf("(nil)\n");
+                print_response_colored(response, NULL);
             } else {
                 /* Read exactly 'len' bytes */
                 char value[RESPONSE_BUF_SIZE];
@@ -176,7 +191,7 @@ static void print_response(const char *response) {
                 while (total_read < len) {
                     int n = recv(sockfd, value + total_read, len - total_read, 0);
                     if (n <= 0) {
-                        fprintf(stderr, "Failed to read bulk string\n");
+                        printf(COLOR_RED "✗ Failed to read bulk string\n" COLOR_RESET);
                         goto cleanup;
                     }
                     total_read += n;
@@ -187,12 +202,12 @@ static void print_response(const char *response) {
                 char trailing[3];
                 recv(sockfd, trailing, 2, 0);
                 
-                printf("\"%s\"\n", value);
+                print_response_colored(response, value);
             }
             
         } else {
             /* Unknown format */
-            printf("%s\n", response);
+            print_response_colored(response, NULL);
         }
         
         /* Check if we sent QUIT */
@@ -202,8 +217,14 @@ static void print_response(const char *response) {
     }
     
 cleanup:
-    /* Step 6: Cleanup */
+    /* Cleanup */
     close_socket(sockfd);
-    printf("\nDisconnected.\n");
+    printf("\n");
+    printf(COLOR_BRIGHT_CYAN "╔════════════════════════════════════════╗\n");
+    printf("║  " COLOR_BRIGHT_WHITE "Disconnected from DragonFlyDB" COLOR_BRIGHT_CYAN "      ║\n");
+    printf("║  " COLOR_DIM "Thank you for using DragonFlyDB!" COLOR_BRIGHT_CYAN "   ║\n");
+    printf("╚════════════════════════════════════════╝\n");
+    printf(COLOR_RESET);
+    printf("\n");
     return 0;
 }

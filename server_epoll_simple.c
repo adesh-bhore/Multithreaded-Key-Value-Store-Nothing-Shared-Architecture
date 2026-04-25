@@ -1,36 +1,3 @@
-# Part 2: epoll-Based High-Performance Server
-
-## Overview
-
-Replace the thread-per-connection model with epoll for better scalability:
-- **Current**: 1 thread per client (doesn't scale beyond ~1000 clients)
-- **New**: Event-driven with epoll (scales to 10,000+ clients)
-
----
-
-## Architecture Comparison
-
-### Current (Thread-per-Connection)
-```
-Client 1 → Thread 1 → Shard Workers
-Client 2 → Thread 2 → Shard Workers
-Client 3 → Thread 3 → Shard Workers
-...
-Client N → Thread N → Shard Workers
-```
-
-### New (epoll-Based)
-```
-Clients 1-N → epoll Event Loop → Worker Threads → Shard Workers
-```
-
----
-
-## Step 1: Create epoll Server (server_epoll.c)
-
-Create a new file `server_epoll.c`:
-
-```c
 #include "network.h"
 #include "protocol.h"
 #include "types.h"
@@ -104,12 +71,6 @@ static void handle_client_command(ClientState *client, const char *line) {
     
     /* Handle command */
     switch(cmd.type) {
-        case CMD_TYPE_PING: {
-            format_ok_response(send_buf, sizeof(send_buf));
-            send_all(client->fd, send_buf, strlen(send_buf));
-            break;
-        }
-        
         case CMD_TYPE_SET: {
             if (client->in_transaction) {
                 tx_add(&client->tx, CMD_SET, cmd.key, cmd.value);
@@ -142,46 +103,6 @@ static void handle_client_command(ClientState *client, const char *line) {
             break;
         }
         
-        case CMD_TYPE_DEL: {
-            Response resp = io_del(&client->rq, cmd.key);
-            format_integer_response(send_buf, sizeof(send_buf), 
-                                  resp.ack == ACK_OK ? 1 : 0);
-            send_all(client->fd, send_buf, strlen(send_buf));
-            break;
-        }
-        
-        case CMD_TYPE_EXISTS: {
-            Response resp = io_exists(&client->rq, cmd.key);
-            format_integer_response(send_buf, sizeof(send_buf), 
-                                  resp.ack == ACK_OK ? 1 : 0);
-            send_all(client->fd, send_buf, strlen(send_buf));
-            break;
-        }
-        
-        case CMD_TYPE_INCR: {
-            Response resp = io_incr(&client->rq, cmd.key);
-            if (resp.ack == ACK_OK) {
-                long long value = atoll(resp.value);
-                format_integer_response(send_buf, sizeof(send_buf), value);
-            } else {
-                format_error_response(send_buf, sizeof(send_buf), "INCR failed");
-            }
-            send_all(client->fd, send_buf, strlen(send_buf));
-            break;
-        }
-        
-        case CMD_TYPE_DECR: {
-            Response resp = io_decr(&client->rq, cmd.key);
-            if (resp.ack == ACK_OK) {
-                long long value = atoll(resp.value);
-                format_integer_response(send_buf, sizeof(send_buf), value);
-            } else {
-                format_error_response(send_buf, sizeof(send_buf), "DECR failed");
-            }
-            send_all(client->fd, send_buf, strlen(send_buf));
-            break;
-        }
-        
         case CMD_TYPE_BEGIN: {
             if (client->in_transaction) {
                 format_error_response(send_buf, sizeof(send_buf), 
@@ -190,6 +111,7 @@ static void handle_client_command(ClientState *client, const char *line) {
                 tx_init(&client->tx);
                 client->in_transaction = 1;
                 format_ok_response(send_buf, sizeof(send_buf));
+                printf("[Server] Client %d: BEGIN transaction\n", client->client_id);
             }
             send_all(client->fd, send_buf, strlen(send_buf));
             break;
@@ -203,6 +125,7 @@ static void handle_client_command(ClientState *client, const char *line) {
                 tx_run(&client->rq, &client->tx, client->client_id);
                 client->in_transaction = 0;
                 format_ok_response(send_buf, sizeof(send_buf));
+                printf("[Server] Client %d: COMMIT transaction\n", client->client_id);
             }
             send_all(client->fd, send_buf, strlen(send_buf));
             break;
@@ -211,6 +134,7 @@ static void handle_client_command(ClientState *client, const char *line) {
         case CMD_TYPE_QUIT: {
             format_ok_response(send_buf, sizeof(send_buf));
             send_all(client->fd, send_buf, strlen(send_buf));
+            printf("[Server] Client %d: QUIT\n", client->client_id);
             close_socket(client->fd);
             client->fd = -1;  // Mark for cleanup
             break;
@@ -228,32 +152,42 @@ static void handle_client_command(ClientState *client, const char *line) {
 static void process_client_data(ClientState *client) {
     char temp_buf[RECV_BUF_SIZE];
     
-    /* Read data */
-    int n = recv(client->fd, temp_buf, sizeof(temp_buf) - 1, 0);
-    if (n <= 0) {
-        if (n == 0) {
-            printf("[Server] Client %d disconnected\n", client->client_id);
-        } else {
+    /* Edge-triggered epoll requires reading until EAGAIN */
+    while (1) {
+        /* Read data */
+        int n = recv(client->fd, temp_buf, sizeof(temp_buf) - 1, 0);
+        if (n < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                /* No more data available */
+                break;
+            }
             perror("recv");
+            close_socket(client->fd);
+            client->fd = -1;
+            return;
         }
-        close_socket(client->fd);
-        client->fd = -1;  // Mark for cleanup
-        return;
+        if (n == 0) {
+            /* Connection closed */
+            printf("[Server] Client %d disconnected\n", client->client_id);
+            close_socket(client->fd);
+            client->fd = -1;
+            return;
+        }
+        
+        temp_buf[n] = '\0';
+        
+        /* Append to buffer */
+        if (client->recv_len + n >= RECV_BUF_SIZE) {
+            fprintf(stderr, "[Server] Client %d buffer overflow\n", client->client_id);
+            close_socket(client->fd);
+            client->fd = -1;
+            return;
+        }
+        
+        memcpy(client->recv_buf + client->recv_len, temp_buf, n);
+        client->recv_len += n;
+        client->recv_buf[client->recv_len] = '\0';
     }
-    
-    temp_buf[n] = '\0';
-    
-    /* Append to buffer */
-    if (client->recv_len + n >= RECV_BUF_SIZE) {
-        fprintf(stderr, "[Server] Client %d buffer overflow\n", client->client_id);
-        close_socket(client->fd);
-        client->fd = -1;
-        return;
-    }
-    
-    memcpy(client->recv_buf + client->recv_len, temp_buf, n);
-    client->recv_len += n;
-    client->recv_buf[client->recv_len] = '\0';
     
     /* Process complete lines */
     char *line_start = client->recv_buf;
@@ -335,7 +269,6 @@ int main(void) {
     printf("[Server] Press Ctrl+C to shutdown\n\n");
     
     /* Client state tracking */
-    ClientState *clients[MAX_EVENTS] = {0};
     int client_counter = 0;
     
     /* Event loop */
@@ -386,7 +319,6 @@ int main(void) {
                 
                 /* Cleanup if disconnected */
                 if (client->fd == -1) {
-                    epoll_ctl(epoll_fd, EPOLL_CTL_DEL, client->fd, NULL);
                     response_queue_destroy(&client->rq);
                     free(client);
                 }
@@ -405,76 +337,3 @@ int main(void) {
     
     return 0;
 }
-```
-
----
-
-## Step 2: Compile epoll Server
-
-```bash
-# On Linux (EC2)
-gcc -o server_epoll server_epoll.c network.c protocol.c hashtable.c queue.c shard.c io.c Transaction.c TXNQueue.c -pthread -O2
-
-# Test it
-./server_epoll
-```
-
----
-
-## Step 3: Update systemd Service
-
-```bash
-# Edit service file
-sudo nano /etc/systemd/system/dragonflydb.service
-```
-
-Change ExecStart line:
-```ini
-ExecStart=/home/ubuntu/DragonFly/Multithreaded-Key-Value-Store-Nothing-Shared-Architecture/server_epoll
-```
-
-Reload and restart:
-```bash
-sudo systemctl daemon-reload
-sudo systemctl restart dragonflydb
-sudo systemctl status dragonflydb
-```
-
----
-
-## Performance Comparison
-
-### Thread-per-Connection
-- Max clients: ~1,000
-- Memory: ~8MB per 1,000 clients (thread stacks)
-- Context switches: High
-- Scalability: Poor
-
-### epoll-Based
-- Max clients: 10,000+
-- Memory: ~100KB per 1,000 clients
-- Context switches: Low
-- Scalability: Excellent
-
----
-
-## Benchmarking
-
-```bash
-# Install redis-benchmark
-sudo apt install redis-tools
-
-# Test thread-based server
-redis-benchmark -h 51.21.226.149 -p 6379 -t set,get -n 100000 -c 50
-
-# Test epoll-based server
-redis-benchmark -h 51.21.226.149 -p 6379 -t set,get -n 100000 -c 50
-
-# Compare results
-```
-
-Expected improvement: 2-3x throughput with epoll!
-
----
-
-Next: Part 3 - Beautiful CLI with ASCII Dragon Art!

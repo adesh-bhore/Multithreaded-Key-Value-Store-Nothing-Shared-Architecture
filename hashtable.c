@@ -56,3 +56,23 @@ int ht_get(HashTable *table, const char *key, char *out_value) {
 int key_to_shard(const char *key) {
     return (int)(hash_key(key) % MAX_SHARDS);
 }
+
+int ht_delete(HashTable *table, const char *key) {
+    uint64_t hash = hash_key(key);
+    size_t idx = hash % TABLE_SIZE;
+
+    // Find the key
+    while (table->entries[idx].occupied) {
+        if (strcmp(table->entries[idx].key, key) == 0) {
+            // Mark as not occupied
+            table->entries[idx].occupied = 0;
+            table->entries[idx].key[0] = '\0';
+            table->entries[idx].value[0] = '\0';
+            table->count--;
+            return 1;  // Found and deleted
+        }
+        idx = (idx + 1) % TABLE_SIZE;
+    }
+
+    return 0;  // Not found
+}
